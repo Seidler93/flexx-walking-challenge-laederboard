@@ -11,6 +11,8 @@ import {
   getSortedLocations,
 } from "./lib/leaderboard";
 
+const ALL_LOCATIONS_ID = "all-locations";
+
 export default function App() {
   const { challenge, locations } = useLeaderboardData();
   const sortedLocations = useMemo(() => getSortedLocations(locations), [locations]);
@@ -19,13 +21,13 @@ export default function App() {
 
   useEffect(() => {
     if (!activeLocationId && sortedLocations.length > 0) {
-      setActiveLocationId(sortedLocations[0].id);
+      setActiveLocationId(ALL_LOCATIONS_ID);
     }
   }, [activeLocationId, sortedLocations]);
 
   const activeLocation =
     sortedLocations.find((location) => location.id === activeLocationId) ??
-    sortedLocations[0];
+    null;
 
   const totalParticipants = sortedLocations.reduce(
     (sum, location) => sum + location.participants,
@@ -39,6 +41,39 @@ export default function App() {
           0,
         ) / totalParticipants
       : 0;
+
+  const overallAverageSteppers = useMemo(
+    () =>
+      sortedLocations
+        .flatMap((location) =>
+          (location.topAverageSteppers ?? []).map((participant) => ({
+            ...participant,
+            detail: `${location.name} • ${formatSteps(participant.totalSteps)} total steps`,
+          })),
+        )
+        .sort((left, right) => right.averageSteps - left.averageSteps)
+        .slice(0, 10),
+    [sortedLocations],
+  );
+
+  const overallTopDays = useMemo(
+    () =>
+      sortedLocations
+        .flatMap((location) =>
+          (location.topDays ?? []).map((day) => ({
+            ...day,
+            detail: `${location.name} • ${new Intl.DateTimeFormat("en-US", {
+              month: "short",
+              day: "numeric",
+            }).format(new Date(day.date))}`,
+          })),
+        )
+        .sort((left, right) => right.steps - left.steps)
+        .slice(0, 10),
+    [sortedLocations],
+  );
+
+  const isAllLocationsView = activeLocationId === ALL_LOCATIONS_ID || !activeLocation;
 
   return (
     <main className="app-shell">
@@ -97,11 +132,11 @@ export default function App() {
 
       <LocationScoreboard
         locations={sortedLocations}
-        activeLocationId={activeLocation?.id}
+        activeLocationId={isAllLocationsView ? undefined : activeLocation?.id}
         onSelect={setActiveLocationId}
       />
 
-      {activeLocation ? (
+      {sortedLocations.length > 0 ? (
         <section className="details panel panel--dark">
           <img
             src="/flexxLogo.png"
@@ -112,33 +147,49 @@ export default function App() {
           <div className="details__header">
             <div>
               <p className="eyebrow">Location Breakdown</p>
-              <h2>{activeLocation.name}</h2>
+              <h2>{isAllLocationsView ? "All Locations" : activeLocation.name}</h2>
               <p className="details__summary">
-                Top performers by average daily steps and highest single days.
+                {isAllLocationsView
+                  ? "Overall top performers across every Flexx location."
+                  : "Top performers by average daily steps and highest single days."}
               </p>
             </div>
 
             <div className="details__pill">
-              {formatSteps(activeLocation.averageStepsPerPerson)} avg / person
+              {formatSteps(
+                isAllLocationsView
+                  ? challengeAverage
+                  : activeLocation.averageStepsPerPerson,
+              )}{" "}
+              avg / person
             </div>
           </div>
 
           <LocationTabs
             locations={sortedLocations}
-            activeLocationId={activeLocation.id}
+            activeLocationId={isAllLocationsView ? ALL_LOCATIONS_ID : activeLocation.id}
             onSelect={setActiveLocationId}
+            allLocationsLabel="All Locations"
           />
 
           <div className="details__grid">
             <TopListCard
-              title="Top 5 Average Steppers"
-              items={activeLocation.topAverageSteppers.slice(0, 5)}
+              title={isAllLocationsView ? "Top 10 Walkers Overall" : "Top 5 Average Steppers"}
+              items={
+                isAllLocationsView
+                  ? overallAverageSteppers
+                  : activeLocation.topAverageSteppers.slice(0, 5)
+              }
               mode="steppers"
+              eyebrow={isAllLocationsView ? "Overall Top 10" : "Top 5"}
             />
             <TopListCard
-              title="Top 5 Highest Stepped Days"
-              items={activeLocation.topDays.slice(0, 5)}
+              title={
+                isAllLocationsView ? "Top 10 Highest Walked Days" : "Top 5 Highest Stepped Days"
+              }
+              items={isAllLocationsView ? overallTopDays : activeLocation.topDays.slice(0, 5)}
               mode="days"
+              eyebrow={isAllLocationsView ? "Overall Top 10" : "Best Days"}
             />
           </div>
         </section>

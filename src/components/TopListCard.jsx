@@ -1,10 +1,10 @@
 import { formatShortDate, formatSteps } from "../lib/leaderboard";
 
-export function TopListCard({ title, items, mode }) {
+export function TopListCard({ title, items, mode, eyebrow }) {
   return (
     <section className="panel">
       <div className="section-heading">
-        <p className="eyebrow">{mode === "steppers" ? "Top 5" : "Best Days"}</p>
+        <p className="eyebrow">{eyebrow ?? (mode === "steppers" ? "Top 5" : "Best Days")}</p>
         <h3>{title}</h3>
       </div>
 
@@ -15,9 +15,11 @@ export function TopListCard({ title, items, mode }) {
             <div className="list-row__main">
               <strong>{mode === "steppers" ? item.name : item.participant}</strong>
               <span>
-                {mode === "steppers"
-                  ? `${formatSteps(item.totalSteps)} total steps`
-                  : formatShortDate(item.date)}
+                {item.detail
+                  ? item.detail
+                  : mode === "steppers"
+                    ? `${formatSteps(item.totalSteps)} total steps`
+                    : formatShortDate(item.date)}
               </span>
             </div>
             <div className="list-row__value">

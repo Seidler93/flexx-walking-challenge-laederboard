@@ -1,10 +1,14 @@
 import { useMemo, useState } from "react";
 
-export function LocationTabs({ locations, activeLocationId, onSelect }) {
+export function LocationTabs({ locations, activeLocationId, onSelect, allLocationsLabel }) {
   const [isOpen, setIsOpen] = useState(false);
   const activeLocation = useMemo(
-    () => locations.find((location) => location.id === activeLocationId) ?? locations[0],
-    [activeLocationId, locations],
+    () =>
+      locations.find((location) => location.id === activeLocationId) ?? {
+        id: "all-locations",
+        name: allLocationsLabel ?? "All Locations",
+      },
+    [activeLocationId, allLocationsLabel, locations],
   );
 
   function handleSelect(locationId) {
@@ -31,6 +35,15 @@ export function LocationTabs({ locations, activeLocationId, onSelect }) {
 
         {isOpen ? (
           <div className="location-select__menu" role="listbox" aria-label="Choose location">
+            <button
+              type="button"
+              className={`location-select__option ${
+                activeLocationId === "all-locations" ? "is-active" : ""
+              }`}
+              onClick={() => handleSelect("all-locations")}
+            >
+              {allLocationsLabel ?? "All Locations"}
+            </button>
             {locations.map((location) => (
               <button
                 key={location.id}
@@ -48,6 +61,15 @@ export function LocationTabs({ locations, activeLocationId, onSelect }) {
       </div>
 
       <div className="location-tabs" role="tablist" aria-label="Flexx locations">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeLocationId === "all-locations"}
+          className={`chip ${activeLocationId === "all-locations" ? "is-active" : ""}`}
+          onClick={() => onSelect("all-locations")}
+        >
+          {allLocationsLabel ?? "All Locations"}
+        </button>
         {locations.map((location) => {
           const isActive = location.id === activeLocationId;
 
